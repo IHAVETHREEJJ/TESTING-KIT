@@ -26,6 +26,7 @@ const formStatus=document.getElementById('formStatus');
 function encodeFormData(formData){return new URLSearchParams(formData).toString()}
 guideForm.addEventListener('submit',async(event)=>{
   event.preventDefault();
+  const pdfWindow=window.open('about:blank','_blank');
   submitButton.disabled=true;
   submitButton.textContent='處理中…';
   formStatus.textContent='正在提交資料及準備攻略…';
@@ -35,12 +36,19 @@ guideForm.addEventListener('submit',async(event)=>{
     if(configResponse.ok) guide=await configResponse.json();
     const formData=new FormData(guideForm);
     await fetch('/',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:encodeFormData(formData)});
-    const whatsappUrl='https://wa.me/85268498333?text='+encodeURIComponent(guide.whatsappMessage||'你好，我啱啱領取咗醫保避伏攻略。');
-    window.open(whatsappUrl,'_blank');
     const separator=guide.file.includes('?')?'&':'?';
-    window.location.href=guide.file+separator+'v='+encodeURIComponent(guide.version||Date.now());
+    const pdfUrl=guide.file+separator+'v='+encodeURIComponent(guide.version||Date.now());
+    if(pdfWindow){
+      pdfWindow.location.href=pdfUrl;
+    }else{
+      window.location.href=pdfUrl;
+      return;
+    }
+    const whatsappUrl='https://wa.me/85268498333?text='+encodeURIComponent(guide.whatsappMessage||'你好，我啱啱領取咗醫保避伏攻略。');
+    window.location.href=whatsappUrl;
   }catch(error){
     console.error(error);
+    if(pdfWindow) pdfWindow.close();
     formStatus.textContent='提交未成功，請稍後再試或直接 WhatsApp 聯絡我。';
     submitButton.disabled=false;
     submitButton.textContent='免費領取攻略　→';
