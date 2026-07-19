@@ -29,13 +29,19 @@ guideForm.addEventListener('submit',async(event)=>{
   const pdfWindow=window.open('about:blank','_blank');
   submitButton.disabled=true;
   submitButton.textContent='處理中…';
-  formStatus.textContent='正在提交資料及準備攻略…';
+  formStatus.textContent='正在準備攻略…';
   let guide={file:'assets/guides/current-guide.pdf',version:'latest',whatsappMessage:'你好，我啱啱領取咗醫保避伏攻略。'};
   try{
     const configResponse=await fetch('config/guide.json',{cache:'no-store'});
     if(configResponse.ok) guide=await configResponse.json();
     const formData=new FormData(guideForm);
-    await fetch('/',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:encodeFormData(formData)});
+    const encoded=encodeFormData(formData);
+    const blob=new Blob([encoded],{type:'application/x-www-form-urlencoded;charset=UTF-8'});
+    if(navigator.sendBeacon){
+      navigator.sendBeacon('/',blob);
+    }else{
+      fetch('/',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:encoded,keepalive:true}).catch(console.error);
+    }
     const separator=guide.file.includes('?')?'&':'?';
     const pdfUrl=guide.file+separator+'v='+encodeURIComponent(guide.version||Date.now());
     if(pdfWindow){
@@ -49,7 +55,7 @@ guideForm.addEventListener('submit',async(event)=>{
   }catch(error){
     console.error(error);
     if(pdfWindow) pdfWindow.close();
-    formStatus.textContent='提交未成功，請稍後再試或直接 WhatsApp 聯絡我。';
+    formStatus.textContent='未能準備攻略，請稍後再試或直接 WhatsApp 聯絡我。';
     submitButton.disabled=false;
     submitButton.textContent='免費領取攻略　→';
   }
